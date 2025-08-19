@@ -64,7 +64,7 @@ frontend_urls = set()
 
 # URLs locales y LAN
 frontend_urls.add(os.environ.get('FRONTEND_URL_LOCAL', 'https://frontendreactvite.onrender.com'))
-frontend_urls.add(os.environ.get('FRONTEND_URL_LAN', f'http://{local_ip}:5173'))
+frontend_urls.add(os.environ.get('FRONTEND_URL_LAN', f'https://frontendreactvite.onrender.com'))
 
 # Parsear FRONTEND_URL del .env si existe
 frontend_url_env = os.environ.get('FRONTEND_URL', '')
