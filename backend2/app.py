@@ -55,35 +55,67 @@ app.config['MYSQL_PASSWORD'] = os.environ.get('MYSQL_PASSWORD')
 app.config['MYSQL_DB'] = os.environ.get('MYSQL_DB')
 app.config['MYSQL_PORT'] = int(os.environ.get('MYSQL_PORT'))
 
-# Detectar IP de la máquina para CORS
-hostname = socket.gethostname()
-local_ip = socket.gethostbyname(hostname)
 
-# Configuración CORS
-frontend_urls = set()
+# URLs del frontend
+frontend_urls = [
+    'https://frontendreactvite.onrender.com',  # SIN barra al final
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:5173'
+]
 
-# URLs locales y LAN
-frontend_urls.add(os.environ.get('FRONTEND_URL_LOCAL', 'https://frontendreactvite.onrender.com/'))
-frontend_urls.add(os.environ.get('FRONTEND_URL_LAN', f'https://frontendreactvite.onrender.com/'))
-
-# Parsear FRONTEND_URL del .env si existe
+# Agregar URLs adicionales del .env si existen
 frontend_url_env = os.environ.get('FRONTEND_URL', '')
 if frontend_url_env:
     for url in frontend_url_env.split(','):
         url_clean = url.strip().rstrip('/')
-        if url_clean:
-            frontend_urls.add(url_clean)
+        if url_clean and url_clean not in frontend_urls:
+            frontend_urls.append(url_clean)
 
-frontend_urls = list(frontend_urls)
 print(f"🌐 CORS configurado para: {frontend_urls}")
 
-# Configuración CORS
+# Configuración CORS más permisiva y específica
 CORS(app,
      origins=frontend_urls,
      supports_credentials=True,
      methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-     allow_headers=['Content-Type', 'Authorization', 'X-Requested-With'])
-        
+     allow_headers=[
+         'Content-Type', 
+         'Authorization', 
+         'X-Requested-With',
+         'Accept',
+         'Origin',
+         'Access-Control-Request-Method',
+         'Access-Control-Request-Headers'
+     ],
+     expose_headers=['Content-Type', 'Authorization'],
+     max_age=600)
+
+# Manejar preflight requests manualmente (adicional)
+@app.before_request
+def handle_preflight():
+    if request.method == "OPTIONS":
+        response = jsonify({})
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add('Access-Control-Allow-Headers', "Content-Type,Authorization")
+        response.headers.add('Access-Control-Allow-Methods', "GET,PUT,POST,DELETE,OPTIONS")
+        return response
+
+# Añadir headers CORS a todas las respuestas
+@app.after_request
+def after_request(response):
+    origin = request.headers.get('Origin')
+    if origin in frontend_urls:
+        response.headers.add('Access-Control-Allow-Origin', origin)
+    elif origin is None:  # Para requests sin Origin header
+        response.headers.add('Access-Control-Allow-Origin', '*')
+    
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    return response
+
 api = Api(app)
 
 class CustomJSONEncoder(json.JSONEncoder):
