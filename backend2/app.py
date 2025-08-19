@@ -55,17 +55,16 @@ app.config['MYSQL_PASSWORD'] = os.environ.get('MYSQL_PASSWORD')
 app.config['MYSQL_DB'] = os.environ.get('MYSQL_DB')
 app.config['MYSQL_PORT'] = int(os.environ.get('MYSQL_PORT'))
 
-
-# URLs del frontend
+# Configuración CORS simplificada - Colocar después de la creación de app
 frontend_urls = [
-    'https://frontendreactvite.onrender.com',  # SIN barra al final
+    'https://frontendreactvite.onrender.com',
     'http://localhost:3000',
     'http://localhost:5173',
     'http://127.0.0.1:3000',
     'http://127.0.0.1:5173'
 ]
 
-# Agregar URLs adicionales del .env si existen
+# Agregar URLs del .env
 frontend_url_env = os.environ.get('FRONTEND_URL', '')
 if frontend_url_env:
     for url in frontend_url_env.split(','):
@@ -75,46 +74,13 @@ if frontend_url_env:
 
 print(f"🌐 CORS configurado para: {frontend_urls}")
 
-# Configuración CORS más permisiva y específica
+# Solo esta configuración CORS - nada más
 CORS(app,
      origins=frontend_urls,
      supports_credentials=True,
      methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-     allow_headers=[
-         'Content-Type', 
-         'Authorization', 
-         'X-Requested-With',
-         'Accept',
-         'Origin',
-         'Access-Control-Request-Method',
-         'Access-Control-Request-Headers'
-     ],
-     expose_headers=['Content-Type', 'Authorization'],
+     allow_headers=['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
      max_age=600)
-
-# Manejar preflight requests manualmente (adicional)
-@app.before_request
-def handle_preflight():
-    if request.method == "OPTIONS":
-        response = jsonify({})
-        response.headers.add("Access-Control-Allow-Origin", "*")
-        response.headers.add('Access-Control-Allow-Headers', "Content-Type,Authorization")
-        response.headers.add('Access-Control-Allow-Methods', "GET,PUT,POST,DELETE,OPTIONS")
-        return response
-
-# Añadir headers CORS a todas las respuestas
-@app.after_request
-def after_request(response):
-    origin = request.headers.get('Origin')
-    if origin in frontend_urls:
-        response.headers.add('Access-Control-Allow-Origin', origin)
-    elif origin is None:  # Para requests sin Origin header
-        response.headers.add('Access-Control-Allow-Origin', '*')
-    
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-    response.headers.add('Access-Control-Allow-Credentials', 'true')
-    return response
 
 api = Api(app)
 
